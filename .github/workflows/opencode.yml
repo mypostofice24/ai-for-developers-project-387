@@ -32,4 +32,4 @@ jobs:
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
         with:
-          model: opencode/ring-2.6-1t-free
+          model: opencode/deepseek-v4-flash-free
