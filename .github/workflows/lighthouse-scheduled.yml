@@ -1,0 +1,114 @@
+name: scheduled-lighthouse
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: Build production Docker image
+        run: docker build -t calendar-booking:lighthouse .
+
+      - name: Start application
+        run: |
+          docker run \
+            --detach \
+            --rm \
+            --name calendar-booking-lighthouse \
+            --publish 3000:3000 \
+            --env PORT=3000 \
+            calendar-booking:lighthouse
+
+      - name: Wait for application
+        run: |
+          for attempt in {1..30}; do
+            if curl --fail --silent --show-error http://127.0.0.1:3000/event-types > /dev/null; then
+              exit 0
+            fi
+
+            echo "Waiting for application... attempt ${attempt}"
+            sleep 2
+          done
+
+          docker logs calendar-booking-lighthouse
+          exit 1
+
+      - name: Run Lighthouse CLI
+        run: |
+          mkdir -p reports/lighthouse
+
+          npx --yes lighthouse http://127.0.0.1:3000/ \
+            --quiet \
+            --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage" \
+            --output=json \
+            --output-path=reports/lighthouse/home.json
+
+          npx --yes lighthouse http://127.0.0.1:3000/ \
+            --quiet \
+            --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage" \
+            --output=html \
+            --output-path=reports/lighthouse/home.html
+
+      - name: Summarize Lighthouse report
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs')
+
+          const report = JSON.parse(fs.readFileSync('reports/lighthouse/home.json', 'utf8'))
+          const categories = ['performance', 'accessibility', 'best-practices', 'seo']
+          const lines = [
+            '# Lighthouse Scheduled Report',
+            '',
+            `URL: ${report.finalDisplayedUrl || report.finalUrl}`,
+            `Generated: ${report.fetchTime}`,
+            '',
+            '| Category | Score | Follow-up |',
+            '| --- | ---: | --- |',
+          ]
+
+          for (const key of categories) {
+            const category = report.categories[key]
+            const score = Math.round(category.score * 100)
+            const followUp = score >= 90 ? 'No immediate action' : 'Create an issue and attach this report'
+            lines.push(`| ${category.title} | ${score} | ${followUp} |`)
+          }
+
+          lines.push(
+            '',
+            '## Decision',
+            '',
+            '- Review categories below 90 in the HTML report.',
+            '- If a regression is confirmed, create a GitHub issue and link this workflow run.',
+            '- Keep the generated HTML and JSON artifacts as the morning report.',
+            '',
+          )
+
+          const summary = `${lines.join('\n')}\n`
+          fs.writeFileSync('reports/lighthouse/summary.md', summary)
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary)
+          NODE
+
+      - name: Upload Lighthouse report
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-report
+          path: reports/lighthouse
+          if-no-files-found: error
+
+      - name: Stop application
+        if: always()
+        run: docker stop calendar-booking-lighthouse || true
