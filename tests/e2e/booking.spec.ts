@@ -13,9 +13,9 @@ const timeFormatter = new Intl.DateTimeFormat('ru-RU', {
   timeZone: 'Asia/Yekaterinburg',
 })
 
-async function selectFirstSlot(page: Page) {
+async function selectLastSlot(page: Page) {
   await expect(async () => {
-    const slotButton = page.locator('.slot-button').first()
+    const slotButton = page.locator('.slot-button').last()
     await expect(slotButton).toBeVisible({ timeout: 1_000 })
     await slotButton.click()
     await expect(page.getByLabel('Имя')).toBeVisible({ timeout: 1_000 })
@@ -26,7 +26,7 @@ test('shows per-field validation errors on empty submit', async ({ page }) => {
   await page.goto('/')
   await page.locator('.event-card').filter({ hasText: '30 мин' }).click()
   await expect(page.getByRole('heading', { name: 'Свободное время' })).toBeVisible()
-  await selectFirstSlot(page)
+  await selectLastSlot(page)
 
   await page.getByRole('button', { name: 'Подтвердить запись' }).click()
 
@@ -38,7 +38,7 @@ test('shows invalid email error on submit', async ({ page }) => {
   await page.goto('/')
   await page.locator('.event-card').filter({ hasText: '30 мин' }).click()
   await expect(page.getByRole('heading', { name: 'Свободное время' })).toBeVisible()
-  await selectFirstSlot(page)
+  await selectLastSlot(page)
 
   await page.getByLabel('Имя').fill('Test User')
   await page.getByLabel('Электронная почта').fill('not-an-email')
