@@ -32,4 +32,4 @@ jobs:
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
         with:
-          model: opencode/claude-sonnet-4
+          model: opencode/deepseek-v4-flash
