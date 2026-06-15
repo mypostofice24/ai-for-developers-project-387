@@ -1,0 +1,52 @@
+name: e2e
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+
+jobs:
+  playwright:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            frontend/package-lock.json
+            backend/package-lock.json
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install frontend dependencies
+        run: npm --prefix frontend ci
+
+      - name: Install backend dependencies
+        run: npm --prefix backend ci
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Compile API contract
+        run: npm run compile:spec
+
+      - name: Generate API types
+        run: npm run generate:api-types
+
+      - name: Typecheck backend
+        run: npm --prefix backend run typecheck
+
+      - name: Test backend
+        run: npm --prefix backend run test
+
+      - name: Typecheck frontend
+        run: npm --prefix frontend run typecheck
+
+      - name: Run e2e tests
+        run: npm run test:e2e

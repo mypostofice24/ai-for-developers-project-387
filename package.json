@@ -1,0 +1,30 @@
+{
+  "name": "calendar-booking-contract",
+  "private": true,
+  "scripts": {
+    "compile:spec": "tsp compile spec",
+    "generate:web-types": "openapi-typescript dist/openapi/openapi.yaml -o frontend/app/types/api.generated.ts",
+    "generate:backend-types": "openapi-typescript dist/openapi/openapi.yaml -o backend/src/types/api.generated.ts",
+    "generate:api-types": "npm run generate:web-types && npm run generate:backend-types",
+    "mock:api": "prism mock dist/openapi/openapi.yaml --host 0.0.0.0 --port ${MOCK_API_PORT:-4010}",
+    "dev:web": "npm --prefix frontend run dev",
+    "dev:api": "npm --prefix backend run dev",
+    "typecheck:api": "npm --prefix backend run typecheck",
+    "build:api": "npm --prefix backend run build",
+    "build:web": "npm --prefix frontend run build && node scripts/create-spa-index.mjs",
+    "test:api": "npm --prefix backend run test",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "docker:build": "docker build -t calendar-booking ."
+  },
+  "dependencies": {
+    "@typespec/compiler": "*",
+    "@typespec/http": "*",
+    "@typespec/openapi3": "*"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.60.0",
+    "@stoplight/prism-cli": "*",
+    "openapi-typescript": "*"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "name": "calendar-booking-frontend",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "nuxt dev --host 0.0.0.0 --port ${WEB_PORT:-3000}",
+    "typecheck": "nuxt typecheck",
+    "build": "nuxt build"
+  },
+  "dependencies": {
+    "@internationalized/date": "*",
+    "@nuxt/ui": "*",
+    "nuxt": "*",
+    "typescript": "*",
+    "vue": "*"
+  },
+  "devDependencies": {
+    "@iconify-json/lucide": "*",
+    "vue-tsc": "*"
+  }
+}

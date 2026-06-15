@@ -1,0 +1,10 @@
+**/node_modules
+**/dist
+**/.nuxt
+**/.output
+.git
+.github
+.env
+playwright-report
+test-results
+npm-debug.log*
