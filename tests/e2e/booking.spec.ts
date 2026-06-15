@@ -13,6 +13,46 @@ const timeFormatter = new Intl.DateTimeFormat('ru-RU', {
   timeZone: 'Asia/Yekaterinburg',
 })
 
+test('shows per-field validation errors on empty submit', async ({ page, request }) => {
+  const slotsResponse = await request.get(`${API_BASE_URL}/event-types/evt-30/slots`)
+  expect(slotsResponse.ok()).toBe(true)
+
+  await page.goto('/')
+  await page.locator('.event-card').filter({ hasText: '30 мин' }).click()
+  await expect(page.getByRole('heading', { name: 'Свободное время' })).toBeVisible()
+
+  const slotButton = page.locator('.slot-button').first()
+  await expect(slotButton).toBeVisible()
+  await slotButton.click()
+  await expect(page.getByLabel('Имя')).toBeVisible()
+
+  await page.getByRole('button', { name: 'Подтвердить запись' }).click()
+
+  await expect(page.locator('#guestName-error')).toHaveText('Введите имя.')
+  await expect(page.locator('#guestEmail-error')).toHaveText('Введите корректную электронную почту.')
+})
+
+test('shows invalid email error on submit', async ({ page, request }) => {
+  const slotsResponse = await request.get(`${API_BASE_URL}/event-types/evt-30/slots`)
+  expect(slotsResponse.ok()).toBe(true)
+
+  await page.goto('/')
+  await page.locator('.event-card').filter({ hasText: '30 мин' }).click()
+  await expect(page.getByRole('heading', { name: 'Свободное время' })).toBeVisible()
+
+  const slotButton = page.locator('.slot-button').first()
+  await expect(slotButton).toBeVisible()
+  await slotButton.click()
+  await expect(page.getByLabel('Имя')).toBeVisible()
+
+  await page.getByLabel('Имя').fill('Test User')
+  await page.getByLabel('Электронная почта').fill('not-an-email')
+  await page.getByRole('button', { name: 'Подтвердить запись' }).click()
+
+  await expect(page.locator('#guestEmail-error')).toHaveText('Введите корректную электронную почту.')
+  await expect(page.locator('#guestName-error')).toHaveCount(0)
+})
+
 test('guest books the first available 30 minute slot', async ({ page, request }) => {
   const slotsResponse = await request.get(`${API_BASE_URL}/event-types/evt-30/slots`)
   expect(slotsResponse.ok()).toBe(true)

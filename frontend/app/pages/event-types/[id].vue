@@ -37,6 +37,10 @@ const form = reactive({
   guestName: '',
   guestEmail: '',
 })
+const fieldErrors = reactive({
+  guestName: '',
+  guestEmail: '',
+})
 
 const slotsByDate = computed(() => {
   const result = new Map<string, Slot[]>()
@@ -79,6 +83,18 @@ watch(selectedDateKey, () => {
   selectedSlot.value = null
   booking.value = null
   submitError.value = ''
+  fieldErrors.guestName = ''
+  fieldErrors.guestEmail = ''
+})
+
+watch(() => form.guestName, () => {
+  fieldErrors.guestName = ''
+  submitError.value = ''
+})
+
+watch(() => form.guestEmail, () => {
+  fieldErrors.guestEmail = ''
+  submitError.value = ''
 })
 
 const isDateDisabled = (date: DateValue) => !availableDateKeys.value.includes(calendarDateToKey(date))
@@ -87,28 +103,35 @@ const chooseSlot = (slot: Slot) => {
   selectedSlot.value = slot
   booking.value = null
   submitError.value = ''
+  fieldErrors.guestName = ''
+  fieldErrors.guestEmail = ''
 }
 
-const validateBookingForm = () => {
-  if (!selectedSlot.value) {
-    return 'Выберите свободное время.'
+const validateField = (field: 'guestName' | 'guestEmail') => {
+  if (field === 'guestName') {
+    fieldErrors.guestName = form.guestName.trim() ? '' : 'Введите имя.'
+  } else if (field === 'guestEmail') {
+    fieldErrors.guestEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.guestEmail)
+      ? ''
+      : 'Введите корректную электронную почту.'
   }
+}
 
-  if (!form.guestName.trim()) {
-    return 'Введите имя.'
-  }
+const validateBookingForm = (): boolean => {
+  fieldErrors.guestName = form.guestName.trim() ? '' : 'Введите имя.'
+  fieldErrors.guestEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.guestEmail)
+    ? ''
+    : 'Введите корректную электронную почту.'
 
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.guestEmail)) {
-    return 'Введите корректную электронную почту.'
-  }
-
-  return ''
+  return !fieldErrors.guestName && !fieldErrors.guestEmail
 }
 
 const submitBooking = async () => {
-  submitError.value = validateBookingForm()
+  if (!selectedSlot.value) {
+    return
+  }
 
-  if (submitError.value || !selectedSlot.value) {
+  if (!validateBookingForm()) {
     return
   }
 
@@ -248,13 +271,34 @@ const submitBooking = async () => {
             </div>
             <div class="field">
               <label for="guestName">Имя</label>
-              <input id="guestName" v-model="form.guestName" type="text" autocomplete="name">
+              <input
+                id="guestName"
+                v-model="form.guestName"
+                type="text"
+                autocomplete="name"
+                :aria-describedby="fieldErrors.guestName ? 'guestName-error' : undefined"
+                @blur="validateField('guestName')"
+              >
+              <p v-if="fieldErrors.guestName" id="guestName-error" class="field-error">{{ fieldErrors.guestName }}</p>
             </div>
             <div class="field">
               <label for="guestEmail">Электронная почта</label>
-              <input id="guestEmail" v-model="form.guestEmail" type="email" autocomplete="email">
+              <input
+                id="guestEmail"
+                v-model="form.guestEmail"
+                type="email"
+                autocomplete="email"
+                :aria-describedby="fieldErrors.guestEmail ? 'guestEmail-error' : undefined"
+                @blur="validateField('guestEmail')"
+              >
+              <p v-if="fieldErrors.guestEmail" id="guestEmail-error" class="field-error">{{ fieldErrors.guestEmail }}</p>
             </div>
-            <div v-if="submitError" class="notice error">{{ submitError }}</div>
+            <div v-if="submitError" class="notice error">
+              {{ submitError }}
+              <button class="secondary-button" style="margin-top: 8px; margin-left: 0;" type="button" @click="submitBooking">
+                Повторить
+              </button>
+            </div>
             <button class="primary-button" type="submit" :disabled="isSubmitting">
               {{ isSubmitting ? 'Создаем...' : 'Подтвердить запись' }}
             </button>
@@ -264,3 +308,11 @@ const submitBooking = async () => {
     </section>
   </div>
 </template>
+
+<style scoped>
+.field-error {
+  color: #e53e3e;
+  font-size: 13px;
+  margin: 4px 0 0;
+}
+</style>
