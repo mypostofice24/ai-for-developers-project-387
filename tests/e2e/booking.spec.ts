@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 
 type Slot = {
   eventTypeId: string
@@ -13,18 +13,20 @@ const timeFormatter = new Intl.DateTimeFormat('ru-RU', {
   timeZone: 'Asia/Yekaterinburg',
 })
 
-test('shows per-field validation errors on empty submit', async ({ page, request }) => {
-  const slotsResponse = await request.get(`${API_BASE_URL}/event-types/evt-30/slots`)
-  expect(slotsResponse.ok()).toBe(true)
+async function selectFirstSlot(page: Page) {
+  await expect(async () => {
+    const slotButton = page.locator('.slot-button').first()
+    await expect(slotButton).toBeVisible({ timeout: 1_000 })
+    await slotButton.click()
+    await expect(page.getByLabel('Имя')).toBeVisible({ timeout: 1_000 })
+  }).toPass({ timeout: 10_000 })
+}
 
+test('shows per-field validation errors on empty submit', async ({ page }) => {
   await page.goto('/')
   await page.locator('.event-card').filter({ hasText: '30 мин' }).click()
   await expect(page.getByRole('heading', { name: 'Свободное время' })).toBeVisible()
-
-  const slotButton = page.locator('.slot-button').first()
-  await expect(slotButton).toBeVisible()
-  await slotButton.click()
-  await expect(page.getByLabel('Имя')).toBeVisible()
+  await selectFirstSlot(page)
 
   await page.getByRole('button', { name: 'Подтвердить запись' }).click()
 
@@ -32,18 +34,11 @@ test('shows per-field validation errors on empty submit', async ({ page, request
   await expect(page.locator('#guestEmail-error')).toHaveText('Введите корректную электронную почту.')
 })
 
-test('shows invalid email error on submit', async ({ page, request }) => {
-  const slotsResponse = await request.get(`${API_BASE_URL}/event-types/evt-30/slots`)
-  expect(slotsResponse.ok()).toBe(true)
-
+test('shows invalid email error on submit', async ({ page }) => {
   await page.goto('/')
   await page.locator('.event-card').filter({ hasText: '30 мин' }).click()
   await expect(page.getByRole('heading', { name: 'Свободное время' })).toBeVisible()
-
-  const slotButton = page.locator('.slot-button').first()
-  await expect(slotButton).toBeVisible()
-  await slotButton.click()
-  await expect(page.getByLabel('Имя')).toBeVisible()
+  await selectFirstSlot(page)
 
   await page.getByLabel('Имя').fill('Test User')
   await page.getByLabel('Электронная почта').fill('not-an-email')

@@ -16,7 +16,6 @@
   },
   "devDependencies": {
     "@iconify-json/lucide": "*",
-    "@types/node": "^25.9.3",
     "vue-tsc": "*"
   }
 }
